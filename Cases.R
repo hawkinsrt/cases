@@ -14,6 +14,8 @@
 # Reset Environment
 # ----------------------------------------------
 rm(list=ls())
+programStartTime = Sys.time()
+print(paste("Program Start Time", programStartTime))
 
 # ----------------------------------------------
 # Package Installers
@@ -24,6 +26,7 @@ rm(list=ls())
 #install.packages("dplyr")
 #install.packages("fpp2")
 #install.packages("tidyr")
+#install.packages("xts")
 #install.packages("zoo")
 
 # ----------------------------------------------
@@ -36,11 +39,13 @@ suppressWarnings(suppressMessages(library(bindrcpp)))
 suppressWarnings(suppressMessages(library(data.table)))
 suppressWarnings(suppressMessages(library(fpp2)))
 suppressWarnings(suppressMessages(library(tidyr)))
+suppressWarnings(suppressMessages(library(xts)))
 suppressWarnings(suppressMessages(library(zoo)))
 suppressWarnings(suppressMessages(library(dplyr)))        # dplyr MUST be the last library listed!!!!
 
-source("C:/Users/user/Desktop/SchoolWork/Semester 2/Cases/cfg.r")
-source("C:/Users/user/Desktop/SchoolWork/Semester 2/Cases/Tables.r")
+source("C:/Users/user/Desktop/SchoolWork/Semester 2/Cases/Git/cases/cfg.r")
+source("C:/Users/user/Desktop/SchoolWork/Semester 2/Cases/Git/cases/Tables.r")
+source("C:/Users/user/Desktop/SchoolWork/Semester 2/Cases/Git/cases/PostgreSQL.r")
 
 print("Loading Libraries Complete")
 
@@ -54,21 +59,23 @@ print("Loading Libraries Complete")
 
 # Create table variables for global use (not typically reccommended, but these are huge objects)
 
-LoadTables()
+LoadTablesSQL()
 
 # ----------------------------------------------
 # PROCESSING
 # ----------------------------------------------
 
+delivery_table = CalculatingDeliveryDates()
+
 inventory_table = CalculatingInventories()
 
 capacities_table = CalculatingCapacities()
 
-# TODO - Calculate next delivery date for each store
-
 forecast_table = ForecastInventories()
 
-# TODO - Find Differnces from the forecasted inventories and Invetory Peaks
+# TODO - Change from Forecast() to Arima()...Forecast is probably using Arima, so doing that last
+
+#output_table = CalculateActualDeliveries()
 
 # ----------------------------------------------
 # OUTPUT
@@ -78,6 +85,7 @@ forecast_table = ForecastInventories()
 
 
 
+print(paste("Program Completed", round(Sys.time()-programStartTime,digits = 2), "minutes"))
 
 stop("[NOT AN ERROR] - End of proven code")
 
@@ -87,3 +95,8 @@ stop("[NOT AN ERROR] - End of proven code")
 # STOP HERE
 # Anything below here is not finished work and is just for testing
 # ----------------------------------------------
+
+test_table = filter(inventory_table, storekey=="10871" | storekey=="11490", sku=="111000407" | sku=="111000120")
+for (i in 2:dim(inventory_table3)[2]){
+  inventory_table4[i-1,1] = round(predict(auto.arima(ts(inventory_table3[,i])),n.ahead = FORECAST_OFFSET)$pred[FORECAST_OFFSET])
+}
