@@ -1,6 +1,7 @@
 suppressWarnings(suppressMessages(library(lubridate)))
 suppressWarnings(suppressMessages(library(RPostgreSQL)))
 
+
 LoadTablesSQL = function () {
   startTime = Sys.time()
   
