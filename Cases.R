@@ -43,9 +43,11 @@ suppressWarnings(suppressMessages(library(xts)))
 suppressWarnings(suppressMessages(library(zoo)))
 suppressWarnings(suppressMessages(library(dplyr)))        # dplyr MUST be the last library listed!!!!
 
-source("C:/Users/user/Desktop/SchoolWork/Semester 2/Cases/Git/cases/cfg.r")
-source("C:/Users/user/Desktop/SchoolWork/Semester 2/Cases/Git/cases/Tables.r")
-source("C:/Users/user/Desktop/SchoolWork/Semester 2/Cases/Git/cases/PostgreSQL.r")
+#set working directory to Poject Directory first
+
+source("cfg.r")
+source("Tables.r")
+source("PostgreSQL.r")
 
 print("Loading Libraries Complete")
 
