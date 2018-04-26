@@ -128,7 +128,9 @@ ForecastInventories = function(){
   # I'm using ceiling and floor because 2 rounds with 0.5s will both round up
   print(" - 5.3 - Sorting and Selecting Inventory Table")
   ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(maxdate=max(calendardate), mindate=min(calendardate)) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
-  ts_ranges
+
+  small_ts = left_join(inventory_table2, ts_ranges, by = "storesku")
+  small_ts = select(small_ts, datediff>60)
   
   # Creating Store:sku hash (might be copy/paste redundant)
   print(" - 5.4 - Creating Primative Store:Sku Hash")
@@ -137,7 +139,7 @@ ForecastInventories = function(){
   
   # Creating Pivot Table of Dates x Store:Sku x inv_current   [Might need to replace inv_current with final_inv?]
   print(" - 5.5 - Populating TS With Inventories")
-  inventory_table3 = as.data.frame(dcast.data.table(inventory_table2, c(calendardate)~c(storesku), fun.aggregate=sum, value.var="final_inventory"))
+  inventory_table3 = suppressWarnings(as.data.frame(dcast.data.table(inventory_table2, c(calendardate)~c(storesku), fun.aggregate=sum, value.var="final_inventory")))
 
 
     # Replace NAs with Previous Inventory Value
@@ -148,22 +150,39 @@ ForecastInventories = function(){
   
   # Create Blank Table for Forecasts
   print(" - 5.7 - Creating Forecast Table Shell")
-  inventory_table4 = data.frame(matrix(data = 0, ncol = 0, nrow=2), row.names = c(paste("Day +", FORECAST_OFFSET, sep = ""), "MAPE"))
+  inventory_table4 = data.frame(matrix(data = 0, ncol = 0, nrow=3), row.names = c(paste("Day +", FORECAST_OFFSET, sep = ""), "MAPE", "Size of Test"))
 
   
   # Perform Forecasts!  We now know what the inventory of each Store:sku will be in 2 days
   print(" - 5.8 - Calculating Forecasts of Inventories")
   for (i in 2:dim(inventory_table3)[2]){
-    training_data = inventory_table3[1:as.numeric(ts_ranges[i-1, "trainr"]), 2]
-    test_data = inventory_table3[as.numeric(ts_ranges[i-1, "trainr"]+1):as.numeric(ts_ranges[i-1, "testr"]), c(1, 2)]
-    forecast_tmp = forecast(auto.arima(tsclean(training_data)), h=FORECAST_OFFSET)
-    inventory_table4[1, i-1] = forecast_tmp$mean[FORECAST_OFFSET]
-    forecast_xts = xts(forecast_tmp$mean, order.by = test_data[, 1])
-    inventory_table4[2, i-1] = 100 * mean(abs((forecast_xts - test_data)/test_data))
+    if (ts_ranges[i-1, "datediff"] >= 60){
+      training_data = tsclean(inventory_table3[1:as.numeric(ts_ranges[i-1, "trainr"]), 2])
+      test_data = tsclean(inventory_table3[as.numeric(ts_ranges[i-1, "trainr"]+1):as.numeric(ts_ranges[i-1, "datediff"]), 2])
+      full_data = tsclean(inventory_table3[1:as.numeric(ts_ranges[i-1, "datediff"]), 2])
+      
+      # Record Forecasted Values
+      forecast_tmp = forecast(auto.arima(full_data), h=FORECAST_OFFSET+1)
+      inventory_table4[1, i-1] = forecast_tmp$mean[FORECAST_OFFSET]
+      
+      # Record Test Values
+      forecast_tmp = forecast(auto.arima(training_data), h=as.numeric(ts_ranges[i-1, "testr"]))
+      forecast_tmp = as.numeric(forecast_tmp$mean)
+      
+      inventory_table4[2, i-1] = 100 * mean(abs((as.numeric(forecast_tmp) - test_data)/test_data))
+      
+      # Record Forecasted Values
+      inventory_table4[3, i-1] = ts_ranges[i-1, "testr"]
+    }
+    else{
+      inventory_table4[1, i-1] = "Not enough data to create forecasts.  Manual calculation required."
+      inventory_table4[2, i-1] = NA
+      inventory_table4[3, i-1] = NA
+    }
   }
+  
   colnames(inventory_table4) = STORE_SKU
 }
-training_data
 
 CalculateActualDeliveries = function(){
   print("6 - Calculating Final Inventories")
