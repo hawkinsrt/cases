@@ -125,9 +125,11 @@ ForecastInventories = function(){
   # Calculate time series ranges
   # I'm using ceiling and floor because 2 rounds with 0.5s will both round up
   print(" - 5.3 - Sorting and Selecting Inventory Table")
-  ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(maxdate=max(calendardate), mindate=min(calendardate)) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
-  #ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(maxdate=max(min(calendardate, as.Date("2017-11-01"), mindate=min(calendardate)))) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
+  #ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(mindate=min(calendardate), maxdate=max(calendardate)) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
+  ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(mindate=max(c(min(calendardate), as.Date("2017-11-01"))), maxdate=max(calendardate)) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
+  ts_ranges[2:10,]
   
+    
   small_ts = left_join(inventory_table2, ts_ranges, by = "storesku")
   small_ts = select(small_ts, datediff>60)
   
@@ -151,7 +153,7 @@ ForecastInventories = function(){
   print(" - 5.7 - Creating Forecast Table Shell")
   inventory_table4 = data.frame(matrix(data = 0, ncol = 0, nrow=3), row.names = c(paste("Day +", FORECAST_OFFSET, sep = ""), "MAPE", "Size of Test"))
 
-  
+
   # Perform Forecasts!  We now know what the inventory of each Store:sku will be in 2 days
   print(" - 5.8 - Calculating Forecasts of Inventories")
   for (i in 2:dim(inventory_table3)[2]){
