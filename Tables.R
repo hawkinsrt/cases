@@ -126,7 +126,8 @@ ForecastInventories = function(){
   # I'm using ceiling and floor because 2 rounds with 0.5s will both round up
   print(" - 5.3 - Sorting and Selecting Inventory Table")
   ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(maxdate=max(calendardate), mindate=min(calendardate)) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
-
+  #ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(maxdate=max(min(calendardate, as.Date("2017-11-01"), mindate=min(calendardate)))) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
+  
   small_ts = left_join(inventory_table2, ts_ranges, by = "storesku")
   small_ts = select(small_ts, datediff>60)
   
@@ -186,6 +187,7 @@ ForecastInventories = function(){
   
   print(paste("5.X - Inventory Forecastings Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
 }
+
 
 CalculateActualDeliveries = function(){
   print("6 - Calculating Final Inventories")
