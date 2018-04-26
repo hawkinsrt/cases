@@ -41,8 +41,6 @@ CalculatingInventories = function(){
 
   print(" - 3.2 - Creating Primative Store:Sku Hash")
   inventory_data = as.data.table(mutate(inventory_data, storesku = paste(storekey, sku, sep="-")))
-  #datemaxes = inventory_data %>% group_by(storesku) %>% summarise(maxdate = max(calendardate)) %>% mutate(oldsku=(maxdate < min(c(MAX_DATE, MAX_DATE2))-60))
-  #datemaxes[datemaxes$oldsku==FALSE,]
 
   
   print(" - 3.3 - Replacing NAs with zeros")
@@ -182,6 +180,11 @@ ForecastInventories = function(){
   }
   
   colnames(inventory_table4) = STORE_SKU
+  
+  # Return the Output
+  inventory_table4
+  
+  print(paste("5.X - Inventory Forecastings Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
 }
 
 CalculateActualDeliveries = function(){
