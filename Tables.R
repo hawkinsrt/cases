@@ -149,9 +149,8 @@ ForecastInventoriesA = function(){
   # Replace NAs with Previous Inventory Value
   print(" - 5.7 - Replacing NAs")
 #  for (i in 2:(dim(inventory_table2)[2]))    is.na(inventory_table2[, i]) = !inventory_table2[, i]
-  na_if(inventory_table2, 0)
-  inventory_table2[,3]
-
+  inventory_table2 = na_if(inventory_table2, 0)
+  
   
   print(" - 5.8 - Replacing NAs - 2")
   #if_else(inventory_table2 == 0, factor(NA)) inventory_table3[, i] = na.locf(inventory_table3[, i], na.rm=FALSE, fromLast=FALSE)
