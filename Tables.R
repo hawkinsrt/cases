@@ -37,7 +37,8 @@ CalculatingInventories = function(){
   
   print(" - 3.1 - Joining SCAN_TABLE and SHIPMENTS_TABLE")
   inventory_data = suppressWarnings(full_join(SHIPMENTS_TABLE, SCAN_TABLE, by = c("calendardate", "storekey", "sku", "datekey", "skukey", "storesku")))
-
+  SCAN_TABLE = NULL
+  SHIPMENTS_TABLE = NULL
 
   print(" - 3.2 - Creating Primative Store:Sku Hash")
   inventory_data = as.data.table(mutate(inventory_data, storesku = paste(storekey, sku, sep="-")))
@@ -106,7 +107,7 @@ CalculatingCapacities = function(){
 }
 
 
-ForecastInventories = function(){
+ForecastInventoriesA = function(){
   
   startTime = Sys.time()
   
@@ -125,42 +126,64 @@ ForecastInventories = function(){
   # Calculate time series ranges
   # I'm using ceiling and floor because 2 rounds with 0.5s will both round up
   print(" - 5.3 - Sorting and Selecting Inventory Table")
-  #ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(mindate=min(calendardate), maxdate=max(calendardate)) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
-  ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(mindate=max(c(min(calendardate), as.Date("2017-11-01"))), maxdate=max(calendardate)) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
-  ts_ranges[2:10,]
+  ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(mindate=min(calendardate), maxdate=max(calendardate)) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
+  #ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(mindate=max(c(min(calendardate), as.Date("2017-11-01"))), maxdate=max(calendardate)) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
   
-    
-  small_ts = left_join(inventory_table2, ts_ranges, by = "storesku")
-  small_ts = select(small_ts, datediff>60)
+  
+  print(" - 5.4 - Recording Store:Skus that are too small to forecast")#Might not be needed
+  #small_ts = left_join(inventory_table2, ts_ranges, by = "storesku")
+  #small_ts = select(small_ts, datediff>60)
+  
   
   # Creating Store:sku hash (might be copy/paste redundant)
-  print(" - 5.4 - Creating Primative Store:Sku Hash")
+  print(" - 5.5 - Creating Primative Store:Sku Hash")
   inventory_table2 = as.data.table(mutate(inventory_table2, storesku = paste(storesku, sep="-")))
   
   
   # Creating Pivot Table of Dates x Store:Sku x inv_current   [Might need to replace inv_current with final_inv?]
-  print(" - 5.5 - Populating TS With Inventories")
-  inventory_table3 = suppressWarnings(as.data.frame(dcast.data.table(inventory_table2, c(calendardate)~c(storesku), fun.aggregate=sum, value.var="final_inventory")))
+  print(" - 5.6 - Populating TS With Inventories")
+  inventory_table2 = suppressWarnings(as.data.frame(dcast.data.table(inventory_table2, c(calendardate)~c(storesku), fun.aggregate=sum, value.var="final_inventory")))
 
 
-    # Replace NAs with Previous Inventory Value
-  print(" - 5.6 - Replacing NAs")
-  for (i in 2:(dim(inventory_table3)[1])) is.na(inventory_table3[, i]) = !inventory_table3[, i]
-  for (i in 2:(dim(inventory_table3)[1])) inventory_table3[, i] = na.locf(inventory_table3[, i], na.rm=FALSE, fromLast=FALSE)
+  # Replace NAs with Previous Inventory Value
+  print(" - 5.7 - Replacing NAs")
+#  for (i in 2:(dim(inventory_table2)[2]))    is.na(inventory_table2[, i]) = !inventory_table2[, i]
+  if_else(inventory_table2 == 0, NA)
+  inventory_table2[,3]
 
   
+  print(" - 5.8 - Replacing NAs - 2")
+  #if_else(inventory_table2 == 0, factor(NA)) inventory_table3[, i] = na.locf(inventory_table3[, i], na.rm=FALSE, fromLast=FALSE)
+  
+  
+  print(paste("5.X - Inventory Forecastings Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
+
+  # Return the Output
+  inventory_table3
+}
+  
+ForecastInventoriesB = function(){
+    
+  startTime = Sys.time()
+  
+  
+  print("6 - Forecast Inventories")
+  
   # Create Blank Table for Forecasts
-  print(" - 5.7 - Creating Forecast Table Shell")
-  inventory_table4 = data.frame(matrix(data = 0, ncol = 0, nrow=3), row.names = c(paste("Day +", FORECAST_OFFSET, sep = ""), "MAPE", "Size of Test"))
+  print(" - 6.1 - Creating Forecast Table Shell")
+  inventory_table4 = data.frame(matrix(data = 0, ncol = dim(preforecast_table)[2], nrow=3), row.names = c(paste("Day +", FORECAST_OFFSET, sep = ""), "MAPE", "Size of Test"))
 
-
+  
   # Perform Forecasts!  We now know what the inventory of each Store:sku will be in 2 days
-  print(" - 5.8 - Calculating Forecasts of Inventories")
-  for (i in 2:dim(inventory_table3)[2]){
+  print(" - 6.2 - Calculating Forecasts of Inventories")
+  for (i in 2:dim(preforecast_table)[2]){
+    if (i %% 10000 == 0){
+      print(paste(i, " out of ", dim(preforecast_table)[2] , " forecasts complete.", sep=""))
+    }
     if (ts_ranges[i-1, "datediff"] >= 60){
-      training_data = tsclean(inventory_table3[1:as.numeric(ts_ranges[i-1, "trainr"]), 2])
-      test_data = tsclean(inventory_table3[as.numeric(ts_ranges[i-1, "trainr"]+1):as.numeric(ts_ranges[i-1, "datediff"]), 2])
-      full_data = tsclean(inventory_table3[1:as.numeric(ts_ranges[i-1, "datediff"]), 2])
+      training_data = tsclean(preforecast_table[1:as.numeric(ts_ranges[i-1, "trainr"]), 2])
+      test_data = tsclean(preforecast_table[as.numeric(ts_ranges[i-1, "trainr"]+1):as.numeric(ts_ranges[i-1, "datediff"]), 2])
+      full_data = tsclean(preforecast_table[1:as.numeric(ts_ranges[i-1, "datediff"]), 2])
       
       # Record Forecasted Values
       forecast_tmp = forecast(auto.arima(full_data), h=FORECAST_OFFSET+1)
@@ -182,12 +205,12 @@ ForecastInventories = function(){
     }
   }
   
-  colnames(inventory_table4) = STORE_SKU
+  colnames(inventory_table4) = colnames(test_table3)[2:dim(inventory_table4)[2]]
   
   # Return the Output
   inventory_table4
   
-  print(paste("5.X - Inventory Forecastings Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
+  print(paste("6.X - Inventory Forecastings Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
 }
 
 

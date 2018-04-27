@@ -73,7 +73,9 @@ inventory_table = CalculatingInventories()
 
 capacities_table = CalculatingCapacities()
 
-forecast_table = ForecastInventories()
+preforecast_table = ForecastInventoriesA()
+
+forecast_table = ForecastInventoriesB()
 
 # TODO - Change from Forecast() to Arima()...Forecast is probably using Arima, so doing that last
 
@@ -98,7 +100,4 @@ stop("[NOT AN ERROR] - End of proven code")
 # Anything below here is not finished work and is just for testing
 # ----------------------------------------------
 
-test_table = filter(inventory_table, storekey=="10871" | storekey=="11490", sku=="111000407" | sku=="111000120")
-for (i in 2:dim(inventory_table3)[2]){
-  inventory_table4[i-1,1] = round(predict(auto.arima(ts(inventory_table3[,i])),n.ahead = FORECAST_OFFSET)$pred[FORECAST_OFFSET])
-}
+test_table = filter(inventory_table, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
