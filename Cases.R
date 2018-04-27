@@ -100,4 +100,18 @@ stop("[NOT AN ERROR] - End of proven code")
 # Anything below here is not finished work and is just for testing
 # ----------------------------------------------
 
-test_table = filter(inventory_table, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
+SCAN_TEST = filter(SCAN_TABLE, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
+SHIPMENT_TEST = filter(SHIPMENTS_TABLE, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
+LEFT_TEST = suppressWarnings(left_join(SHIPMENT_TEST, SCAN_TEST, by = c("calendardate", "storekey", "sku", "datekey", "skukey", "storesku")))
+RIGHT_TEST = suppressWarnings(right_join(SHIPMENT_TEST, SCAN_TEST, by = c("calendardate", "storekey", "sku", "datekey", "skukey", "storesku")))
+ANTI_TEST = suppressWarnings(anti_join(SHIPMENT_TEST, SCAN_TEST, by = c("calendardate", "storekey", "sku", "datekey", "skukey", "storesku")))
+
+SCAN_TEST = arrange(SCAN_TEST, storesku, calendardate)
+SHIPMENT_TEST = arrange(SHIPMENT_TEST, storesku, calendardate)
+LEFT_TEST = arrange(LEFT_TEST, storesku, calendardate)
+RIGHT_TEST = arrange(RIGHT_TEST, storesku, calendardate)
+ANTI_TEST = arrange(ANTI_TEST, storesku, calendardate)
+
+
+head(SCAN_TEST)
+head(SHIPMENT_TEST)
