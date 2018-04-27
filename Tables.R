@@ -24,7 +24,7 @@ CalculatingDeliveryDates = function(){
   print(paste("2.X - Delivery Schedules Calculations Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
   
   # Return the Output  
-  deliveries2
+  deliveries2[,1]
 }
 
 
@@ -37,8 +37,10 @@ CalculatingInventories = function(){
   
   print(" - 3.1 - Joining SCAN_TABLE and SHIPMENTS_TABLE")
   inventory_data = suppressWarnings(full_join(SHIPMENTS_TABLE, SCAN_TABLE, by = c("calendardate", "storekey", "sku", "datekey", "skukey", "storesku")))
-  SCAN_TABLE = NULL
-  SHIPMENTS_TABLE = NULL
+  inventory_data = suppressWarnings(semi_join(inventory_data, delivery_table, by = "storesku"))
+
+#  SCAN_TABLE = NULL
+#  SHIPMENTS_TABLE = NULL
 
   print(" - 3.2 - Creating Primative Store:Sku Hash")
   inventory_data = as.data.table(mutate(inventory_data, storesku = paste(storekey, sku, sep="-")))
@@ -79,7 +81,6 @@ CalculatingInventories = function(){
   # Return the Output  
   inventory_data
 }
-
 
 
 CalculatingCapacities = function(){
@@ -148,7 +149,6 @@ ForecastInventoriesA = function(){
   # Replace NAs with Previous Inventory Value
   print(" - 5.7 - Replacing NAs")
 #  for (i in 2:(dim(inventory_table2)[2]))    is.na(inventory_table2[, i]) = !inventory_table2[, i]
-
   na_if(inventory_table2, 0)
   inventory_table2[,3]
 
@@ -162,7 +162,8 @@ ForecastInventoriesA = function(){
   # Return the Output
   inventory_table3
 }
-  
+
+
 ForecastInventoriesB = function(){
     
   startTime = Sys.time()

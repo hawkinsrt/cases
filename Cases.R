@@ -77,8 +77,6 @@ preforecast_table = ForecastInventoriesA()
 
 forecast_table = ForecastInventoriesB()
 
-# TODO - Change from Forecast() to Arima()...Forecast is probably using Arima, so doing that last
-
 #output_table = CalculateActualDeliveries()
 
 # ----------------------------------------------
