@@ -9,26 +9,20 @@ CalculatingDeliveryDates = function() {
   deliveries = SHIPMENTS_TABLE %>% mutate(dow = format(as.Date(calendardate), "%a"))
   
   
-  print(" - 2.2 - Calculate counts and means of DoWs")
+  print(" - 2.2 - Calculating counts and means of DoWs")
   deliveries2 = deliveries %>% group_by(storesku, dow) %>% summarise(n = n()) %>% mutate(mean = mean(n)) %>% ungroup()
   
   
-  print(" - 2.3 - Choose store:skus")
+  print(" - 2.3 - Calculating delivery schedules")
   deliveries2 = deliveries2 %>% mutate(IsDeliver = (n >= mean))
   
   
-  print(" - 2.4 - Calculating delivery date")
+  print(" - 2.4 - Calculating which stores to deliver to today")
   deliveries2 = filter(deliveries2, dow == format(as.Date(PROCESSING_DATE + FORECAST_OFFSET), "%a"), IsDeliver == TRUE)
   assign("deliveries",    deliveries,    envir = globalenv())  # Send the table to the global environment
 
     
-  if (round(Sys.time()-startTime,digits = 2) < 3){
-    print(paste("2.X - Delivery Schedules Calculations Complete", round(Sys.time() - startTime, digits = 2), "minutes"))
-  }
-  else{
-    print(paste("2.X - Delivery Schedules Calculations Complete", round(Sys.time() - startTime, digits = 2), "seconds"))
-  }
-#  print(paste("2.X - Delivery Schedules Calculations Complete", round(Sys.time() - startTime, digits = 2), ifelse(round(Sys.time()-startTime,digits = 2) < 3, "minutes", "seconds")))
+  print(paste("2.X - Delivery Schedules Calculations Complete", round(Sys.time() - startTime, digits = 2), ifelse(round(Sys.time()-startTime,digits = 2) < 3, "minutes", "seconds")))
 
   # Return the Output  
   deliveries2[,1]
@@ -47,10 +41,14 @@ CalculatingInventories = function() {
   inventory_data = suppressWarnings(full_join(SHIPMENTS_TABLE, SCAN_TABLE,
                                     by = c("calendardate", "storekey", "sku", "datekey", "storesku", "skukey")))
                                     # The last three joins above are not functionally necessary, but it prevents duplicate columns from being created by R
+  
 
+  print(" - 3.2 - Reducing inventory to only today's deliveries")
+  inventory_data = suppressWarnings(semi_join(inventory_data, delivery_table, by = "storesku"))
 
-  print(" - 3.2 - Creating Primative Store:Sku Hash")
-  inventory_data = as.data.table(mutate(inventory_data, storesku = paste(storekey, sku, sep = "-")))
+  
+  #print(" - 3.3 - Creating Primative Store:Sku Hash")
+  #inventory_data = as.data.table(mutate(inventory_data, storesku = paste(storekey, sku, sep = "-")))
 
   
   print(" - 3.3 - Replacing NAs with zeros")
@@ -136,7 +134,7 @@ ForecastInventoriesA = function() {
   # I'm using ceiling and floor because 2 rounds with 0.5s will both round up
   print(" - 5.3 - Sorting and Selecting Inventory Table")
   ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(mindate = min(calendardate), maxdate = max(calendardate)) %>% mutate(datediff = maxdate - mindate, trainr = ceiling(datediff * 0.7), testr = floor(datediff * 0.3), splitdate = mindate + trainr) %>% ungroup()
-
+  assign("ts_ranges",    ts_ranges,    envir = globalenv())  # Send the table to the global environment
 
   # Creating Store:sku hash (might be copy/paste redundant)
   print(" - 5.4 - Creating Primative Store:Sku Hash")
@@ -148,7 +146,7 @@ ForecastInventoriesA = function() {
   inventory_table2 = suppressWarnings(as.data.frame(dcast.data.table(inventory_table2, c(calendardate) ~ c(storesku), fun.aggregate = sum, fill = NA, value.var = "final_inventory")))
 
   
-  print(paste("5.X - Inventory Forecastings Complete", round(Sys.time() - startTime, digits = 2), "minutes"))
+  print(paste("5.X - Inventory Forecastings Complete", round(Sys.time() - startTime, digits = 2), ifelse(round(Sys.time()-startTime,digits = 2) < 3, "minutes", "seconds")))
   
   # Return the Output
   inventory_table2

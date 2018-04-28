@@ -86,12 +86,7 @@ if (!is.null(wd)) setwd(wd)
 print("")
 print (paste("*** PROCESSING DATE - ", format(PROCESSING_DATE, "%A, %B %d, %Y"), " ***", sep = ""))
 print (paste("*** FORECASTING DATE -  ", format(PROCESSING_DATE + FORECAST_OFFSET, "%A, %B %d, %Y"), " ***", sep = ""))
-if (CALCULATE_MAPE) {
-  print ("*** CALCULATING MAPE VALUES - ON ***")
-} else {
-  print ("*** CALCULATING MAPE VALUES - OFF ***")
-}
-# print (paste("*** CALCULATING MAPE VALUES -  ", ifelse(CALCULATE_MAPE, "ON", "OFF"), " ***", sep = ""))
+print (paste("*** CALCULATING MAPE VALUES -  ", ifelse(CALCULATE_MAPE, "ON", "OFF"), " ***", sep = ""))
 print ("")
 print("Loading Program Settings Complete")
 
