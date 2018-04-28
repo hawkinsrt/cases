@@ -1,4 +1,4 @@
-CalculatingDeliveryDates = function(){
+CalculatingDeliveryDates = function() {
   
   startTime = Sys.time()
   
@@ -6,30 +6,36 @@ CalculatingDeliveryDates = function(){
   print("2 - Calculating Delivery Schedules")
   
   print(" - 2.1 - Translating dates to Day of Week")
-  deliveries = SHIPMENTS_TABLE %>% mutate(dow = format(as.Date(calendardate),"%a"))
+  deliveries = SHIPMENTS_TABLE %>% mutate(dow = format(as.Date(calendardate), "%a"))
   
   
   print(" - 2.2 - Calculate counts and means of DoWs")
-  deliveries2 = deliveries %>% group_by(storesku, dow) %>% summarise(n=n()) %>% mutate(mean=mean(n)) %>% ungroup()
+  deliveries2 = deliveries %>% group_by(storesku, dow) %>% summarise(n = n()) %>% mutate(mean = mean(n)) %>% ungroup()
   
   
   print(" - 2.3 - Choose store:skus")
-  deliveries2 = deliveries2 %>% mutate(IsDeliver=(n>=mean))
+  deliveries2 = deliveries2 %>% mutate(IsDeliver = (n >= mean))
   
   
   print(" - 2.4 - Calculating delivery date")
-  deliveries2 = filter(deliveries2, dow == format(as.Date(PROCESSING_DATE + FORECAST_OFFSET),"%a"), IsDeliver == TRUE)
+  deliveries2 = filter(deliveries2, dow == format(as.Date(PROCESSING_DATE + FORECAST_OFFSET), "%a"), IsDeliver == TRUE)
   assign("deliveries",    deliveries,    envir = globalenv())  # Send the table to the global environment
-  
 
-  print(paste("2.X - Delivery Schedules Calculations Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
-  
+    
+  if (round(Sys.time()-startTime,digits = 2) < 3){
+    print(paste("2.X - Delivery Schedules Calculations Complete", round(Sys.time() - startTime, digits = 2), "minutes"))
+  }
+  else{
+    print(paste("2.X - Delivery Schedules Calculations Complete", round(Sys.time() - startTime, digits = 2), "seconds"))
+  }
+#  print(paste("2.X - Delivery Schedules Calculations Complete", round(Sys.time() - startTime, digits = 2), ifelse(round(Sys.time()-startTime,digits = 2) < 3, "minutes", "seconds")))
+
   # Return the Output  
   deliveries2[,1]
 }
 
 
-CalculatingInventories = function(){
+CalculatingInventories = function() {
   
   startTime = Sys.time()
   
@@ -40,16 +46,16 @@ CalculatingInventories = function(){
   print(" - 3.1 - Joining SCAN_TABLE and SHIPMENTS_TABLE")
   inventory_data = suppressWarnings(full_join(SHIPMENTS_TABLE, SCAN_TABLE,
                                     by = c("calendardate", "storekey", "sku", "datekey", "storesku", "skukey")))
-                                    # The last three joins above are not functionally necessary, but prevent duplicate columns from being created by R
+                                    # The last three joins above are not functionally necessary, but it prevents duplicate columns from being created by R
 
 
   print(" - 3.2 - Creating Primative Store:Sku Hash")
-  inventory_data = as.data.table(mutate(inventory_data, storesku = paste(storekey, sku, sep="-")))
+  inventory_data = as.data.table(mutate(inventory_data, storesku = paste(storekey, sku, sep = "-")))
 
   
   print(" - 3.3 - Replacing NAs with zeros")
-  inventory_data$shipunits[is.na(inventory_data$shipunits)]=0
-  inventory_data$salesunits[is.na(inventory_data$salesunits)]=0
+  inventory_data$shipunits[is.na(inventory_data$shipunits)] = 0
+  inventory_data$salesunits[is.na(inventory_data$salesunits)] = 0
   
   
   # Sort the columns by Store:sku first, then by date
@@ -75,17 +81,17 @@ CalculatingInventories = function(){
     
   # If the inventory goes into the negative, add that negative number to the entire set of inventories for that store:sku to bring it out of negative - This is necessary for a poisson regression
   print(" - 3.7 - Reverse calculating starting inventories")
-  inventory_data = inventory_data %>% group_by(storesku) %>% mutate(final_inventory = cumsum(inv_change)-min(inv_current)) %>% ungroup()
+  inventory_data = inventory_data %>% group_by(storesku) %>% mutate(final_inventory = cumsum(inv_change) - min(inv_current)) %>% ungroup()
   
   
-  print(paste("3.X - Inventory Calculations Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
+  print(paste("3.X - Inventory Calculations Complete", round(Sys.time() - startTime,digits = 2), "minutes"))
   
   # Return the Output  
   inventory_data
 }
 
 
-CalculatingCapacities = function(){
+CalculatingCapacities = function() {
   
   startTime = Sys.time()
   
@@ -94,7 +100,7 @@ CalculatingCapacities = function(){
   
   # Get only rows that have a positive shipment count
   print(" - 4.1 - Creating a Table of Only Deliveries")
-  dist_table = filter(inventory_table, shipunits>0)
+  dist_table = filter(inventory_table, shipunits > 0)
   
   
   # Get the average of all of the shipment dates  [ We are assuming the driver was able to bring the store up to or close to capacity each run.  So we will take the mean of the inventories after the delivery to determine the capacity ]
@@ -102,7 +108,7 @@ CalculatingCapacities = function(){
   capacities = dist_table %>% group_by(storesku) %>% summarise(mean = mean(final_inventory))
   
   
-  print(paste("4.X - Inventories Capacity Calculations Complete", round(Sys.time()-startTime, digits = 2), "seconds."))
+  print(paste("4.X - Inventories Capacity Calculations Complete", round(Sys.time() - startTime, digits = 2), "seconds"))
   
   
   # Return the Output
@@ -110,7 +116,7 @@ CalculatingCapacities = function(){
 }
 
 
-ForecastInventoriesA = function(){
+ForecastInventoriesA = function() {
   
   startTime = Sys.time()
   
@@ -123,13 +129,13 @@ ForecastInventoriesA = function(){
   
   # Reduce the number of columns in the table and sort
   print(" - 5.2 - Sorting and Selecting Inventory Table")
-  inventory_table2 = inventory_table[c('calendardate','storesku','final_inventory')] %>% arrange(storesku, as.Date(calendardate))
+  inventory_table2 = inventory_table[c('calendardate', 'storesku', 'final_inventory')] %>% arrange(storesku, as.Date(calendardate))
 
   
   # Calculate time series ranges
   # I'm using ceiling and floor because 2 rounds with 0.5s will both round up
   print(" - 5.3 - Sorting and Selecting Inventory Table")
-  ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(mindate=min(calendardate), maxdate=max(calendardate)) %>% mutate(datediff=maxdate-mindate, trainr=ceiling(datediff*0.7), testr=floor(datediff*0.3), splitdate=mindate+trainr) %>% ungroup()
+  ts_ranges = inventory_table %>% group_by(storesku) %>% summarise(mindate = min(calendardate), maxdate = max(calendardate)) %>% mutate(datediff = maxdate - mindate, trainr = ceiling(datediff * 0.7), testr = floor(datediff * 0.3), splitdate = mindate + trainr) %>% ungroup()
 
 
   # Creating Store:sku hash (might be copy/paste redundant)
@@ -139,16 +145,11 @@ ForecastInventoriesA = function(){
   
   # Creating Pivot Table of Dates x Store:Sku x inv_current   [Might need to replace inv_current with final_inv?]
   print(" - 5.5 - Populating TS With Inventories")
-  inventory_table2 = suppressWarnings(as.data.frame(dcast.data.table(inventory_table2, c(calendardate)~c(storesku), fun.aggregate=sum, value.var="final_inventory")))
-
-
-  # Replace NAs with Previous Inventory Value
-  print(" - 5.6 - Replacing NAs")
-  inventory_table2 = inventory_table2 %>% na_if(0L)
+  inventory_table2 = suppressWarnings(as.data.frame(dcast.data.table(inventory_table2, c(calendardate) ~ c(storesku), fun.aggregate = sum, fill = NA, value.var = "final_inventory")))
 
   
-  print(paste("5.X - Inventory Forecastings Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
-
+  print(paste("5.X - Inventory Forecastings Complete", round(Sys.time() - startTime, digits = 2), "minutes"))
+  
   # Return the Output
   inventory_table2
 }
@@ -163,55 +164,65 @@ ForecastInventoriesB = function(){
   
   # Create Blank Table for Forecasts
   print(" - 6.1 - Creating Forecast Table Shell")
-  inventory_table4 = data.frame(matrix(data = 0, ncol = dim(preforecast_table)[2], nrow=3), row.names = c(paste("Day +", FORECAST_OFFSET, sep = ""), "MAPE", "Size of Test"))
-
+  if (CALCULATE_MAPE) {
+    inventory_table4 = data.frame(matrix(data = 0, ncol = dim(preforecast_table)[2], nrow = 3), row.names = c(paste("Day +", FORECAST_OFFSET, sep = ""), "MAPE", "Size of Test"))
+  }
+  else {
+    inventory_table4 = data.frame(matrix(data = 0, ncol = dim(preforecast_table)[2], nrow = 1), row.names = c(paste("Day +", FORECAST_OFFSET, sep = "")))
+  }
   
   # Perform Forecasts!  We now know what the inventory of each Store:sku will be in 2 days
   print(" - 6.2 - Calculating Forecasts of Inventories")
-  for (i in 2:dim(preforecast_table)[2]){
+  print(Sys.time())
+  for (i in 2:dim(preforecast_table)[2]) {
     if (i %% 10000 == 0){
-      print(paste(i, " out of ", dim(preforecast_table)[2] , " forecasts complete.", sep=""))
+      print(paste(i, " out of ", dim(preforecast_table)[2], " forecasts complete.", sep=""))
     }
 
     training_data = preforecast_table[1:as.numeric(ts_ranges[i-1, "trainr"]), 2]
     test_data = preforecast_table[as.numeric(ts_ranges[i-1, "trainr"]+1):as.numeric(ts_ranges[i-1, "datediff"]), 2]
     full_data = preforecast_table[1:as.numeric(ts_ranges[i-1, "datediff"]), 2]
 
-    if (ts_ranges[i-1, "datediff"] >= 60 && sum(!is.na(test_data)) > 1 && sum(!is.na(training_data)) > 1){
+    if (ts_ranges[i-1, "datediff"] >= 60 && sum(!is.na(test_data)) > 1 && sum(!is.na(training_data)) > 1) {
       training_data = tsclean(training_data)
       test_data = tsclean(test_data)
       full_data = tsclean(full_data)
 
       # Record Forecasted Values
-      forecast_tmp = forecast(auto.arima(full_data), h=FORECAST_OFFSET+1)
-      inventory_table4[1, i-1] = forecast_tmp$mean[FORECAST_OFFSET]
+      forecast_tmp = forecast(auto.arima(full_data), h = FORECAST_OFFSET + 1)
+      inventory_table4[1, i - 1] = forecast_tmp$mean[FORECAST_OFFSET]
       
-      # Record Test Values
-      forecast_tmp = forecast(auto.arima(training_data), h=as.numeric(ts_ranges[i-1, "testr"]))
-      forecast_tmp = as.numeric(forecast_tmp$mean)
-
-      inventory_table4[2, i-1] = 100 * mean(abs((as.numeric(forecast_tmp) - test_data)/test_data))
-      
-      # Record Forecasted Values
-      inventory_table4[3, i-1] = ts_ranges[i-1, "testr"]
+      if (CALCULATE_MAPE) {
+        # Record Test Values
+        forecast_tmp = forecast(auto.arima(training_data), h = as.numeric(ts_ranges[i-1, "testr"]))
+        forecast_tmp = as.numeric(forecast_tmp$mean)
+  
+        inventory_table4[2, i-1] = 100 * mean(abs((as.numeric(forecast_tmp) - test_data) / test_data))
+        
+        # Record Forecasted Values
+        inventory_table4[3, i-1] = ts_ranges[i-1, "testr"]
+      }
     }
-    else{
+    else {
       inventory_table4[1, i-1] = "Not enough data to create forecasts.  Manual calculation required."
-      inventory_table4[2, i-1] = NA
-      inventory_table4[3, i-1] = NA
+      if (CALCULATE_MAPE) {
+        inventory_table4[2, i-1] = NA
+        inventory_table4[3, i-1] = NA
+      }
     }
   }
 
   colnames(inventory_table4) = colnames(preforecast_table)[2:dim(inventory_table4)[2]]
+  print(Sys.time())
   
   # Return the Output
   inventory_table4
   
-  print(paste("6.X - Inventory Forecastings Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
+  print(paste("6.X - Inventory Forecastings Complete", round(Sys.time() - startTime,digits = 2), "minutes"))
 }
 
 
-CalculateActualDeliveries = function(){
+CalculateActualDeliveries = function() {
   
   startTime = Sys.time()
   

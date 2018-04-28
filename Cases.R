@@ -16,7 +16,7 @@
 # ----------------------------------------------
 rm(list=ls())
 programStartTime = Sys.time()
-print(paste("Program Start Time", programStartTime))
+print(paste("*** PROGRAM START TIME - ", programStartTime, " ***", sep = ""))
 
 
 # ----------------------------------------------
@@ -58,21 +58,22 @@ print("Loading Libraries Complete")
 # ----------------------------------------------
 print("Loading Program Settings")
 
-
-# The processing date of the run
+# PROCESSING DATE OF THE RUN
 PROCESSING_DATE = as.Date("2018-01-23")
 # PROCESSING_DATE = today()
-print (paste("The processing date of this run is ", format(PROCESSING_DATE, "%A, %B %d, %Y"), sep=""))
 
 
-# The number of days out to forecast
+# THE NUMBER OF DAYS OUT TO FORECAST
 FORECAST_OFFSET = 2
-print (paste("The forecasting date of this run is ", format(PROCESSING_DATE + FORECAST_OFFSET, "%A, %B %d, %Y"), sep=""))
 
 
-# The shrink decay modifier
+# SHOULD THE JOB CALCULATE MAPE VALUES?
+CALCULATE_MAPE = FALSE
+
+
+# SHRINK DECAY MODIFIER
 # Shrink decay does not work yet.
-# Furthermore, a different system should be used where there is a differnt modifier for each sku
+# Furthermore, a different system should be probably used where there is a differnt modifier for each sku
 # SHRINK_DECAY = 0.10
 
 
@@ -81,6 +82,17 @@ wd = getwd()
 if (!is.null(wd)) setwd(wd)
 
 
+# Display settings for user
+print("")
+print (paste("*** PROCESSING DATE - ", format(PROCESSING_DATE, "%A, %B %d, %Y"), " ***", sep = ""))
+print (paste("*** FORECASTING DATE -  ", format(PROCESSING_DATE + FORECAST_OFFSET, "%A, %B %d, %Y"), " ***", sep = ""))
+if (CALCULATE_MAPE) {
+  print ("*** CALCULATING MAPE VALUES - ON ***")
+} else {
+  print ("*** CALCULATING MAPE VALUES - OFF ***")
+}
+# print (paste("*** CALCULATING MAPE VALUES -  ", ifelse(CALCULATE_MAPE, "ON", "OFF"), " ***", sep = ""))
+print ("")
 print("Loading Program Settings Complete")
 
 
@@ -102,9 +114,9 @@ LoadTablesSQL()
 
 delivery_table = CalculatingDeliveryDates()
 
-capacities_table = CalculatingCapacities()
-
 inventory_table = CalculatingInventories()
+
+capacities_table = CalculatingCapacities()
 
 preforecast_table = ForecastInventoriesA()
 
@@ -119,8 +131,9 @@ forecast_table = ForecastInventoriesB()
 # TODO - Create Outputs
 
 
-
-print(paste("Program Completed", round(Sys.time()-programStartTime,digits = 2), "minutes"))
+programEndTime = Sys.time()
+print(paste("Program Completed", round(programEndTime - programStartTime, digits = 2), "hours"))
+print(paste("*** PROGRAM END TIME - ", programEndTime, " ***", sep = ""))
 
 stop("[NOT AN ERROR] - End of proven code")
 
