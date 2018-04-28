@@ -163,7 +163,7 @@ ForecastInventoriesB = function(){
   
   # Perform Forecasts!  We now know what the inventory of each Store:sku will be in 2 days
   print(" - 6.2 - Calculating Forecasts of Inventories")
-8:07
+
   for (i in 2:dim(preforecast_table)[2]){
     if (i %% 10000 == 0){
       print(paste(i, " out of ", dim(preforecast_table)[2] , " forecasts complete.", sep=""))
@@ -172,8 +172,8 @@ ForecastInventoriesB = function(){
     training_data = preforecast_table[1:as.numeric(ts_ranges[i-1, "trainr"]), 2]
     test_data = preforecast_table[as.numeric(ts_ranges[i-1, "trainr"]+1):as.numeric(ts_ranges[i-1, "datediff"]), 2]
     full_data = preforecast_table[1:as.numeric(ts_ranges[i-1, "datediff"]), 2]
-    
-    if (ts_ranges[i-1, "datediff"] >= 60 && sum(is.na(test_data)) > 1 && sum(is.na(training_data) > 1)){
+
+    if (ts_ranges[i-1, "datediff"] >= 60 && sum(!is.na(test_data)) > 1 && sum(!is.na(training_data)) > 1){
       training_data = tsclean(training_data)
       test_data = tsclean(test_data)
       full_data = tsclean(full_data)
@@ -231,3 +231,4 @@ CalculateActualDeliveries = function(){
   # Return the Output
   output_table
 }
+inventory_table4[,40:90]
