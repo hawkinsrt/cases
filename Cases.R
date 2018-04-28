@@ -47,8 +47,8 @@ suppressWarnings(suppressMessages(library(zoo)))
 suppressWarnings(suppressMessages(library(dplyr)))        # dplyr MUST be the last library listed!!!!
 
 
-source("Tables.r")
 source("PostgreSQL.r")
+source("Tables.r")
 
 print("Loading Libraries Complete")
 
@@ -139,3 +139,8 @@ SCAN_TEST = filter(SCAN_TABLE, storekey=="10871" | storekey=="11490" | storekey=
 SHIPMENT_TEST = filter(SHIPMENTS_TABLE, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
 SCAN_TEST [,10:20]
 SHIPMENT_TEST [,10:20]
+
+inventory_data2 [30:40,]
+inventory_data2 [5180:5200,] %>%  mutate(inv_change = shipunits - salesunits)
+inventory_data2 [5180:5200,]
+glimpse(inventory_data)
