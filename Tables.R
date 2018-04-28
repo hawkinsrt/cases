@@ -211,12 +211,11 @@ ForecastInventoriesB = function(){
   }
 
   colnames(inventory_table4) = colnames(preforecast_table)[2:dim(inventory_table4)[2]]
-  print(Sys.time())
+
+  print(paste("6.X - Inventory Forecastings Complete", round(Sys.time() - startTime,digits = 2), "minutes"))
   
   # Return the Output
   inventory_table4
-  
-  print(paste("6.X - Inventory Forecastings Complete", round(Sys.time() - startTime,digits = 2), "minutes"))
 }
 
 

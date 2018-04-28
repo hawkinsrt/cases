@@ -14,6 +14,7 @@
 # ----------------------------------------------
 # Reset Environment
 # ----------------------------------------------
+
 rm(list=ls())
 programStartTime = Sys.time()
 print(paste("*** PROGRAM START TIME - ", programStartTime, " ***", sep = ""))
@@ -141,14 +142,3 @@ stop("[NOT AN ERROR] - End of proven code")
 
 INVENTORY_TEST = filter(inventory_data, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
 INVENTORY_TEST [,10:20]
-
-
-SCAN_TEST = filter(SCAN_TABLE, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
-SHIPMENT_TEST = filter(SHIPMENTS_TABLE, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
-SCAN_TEST [,10:20]
-SHIPMENT_TEST [,10:20]
-
-inventory_data2 [30:40,]
-inventory_data2 [5180:5200,] %>%  mutate(inv_change = shipunits - salesunits)
-inventory_data2 [5180:5200,]
-glimpse(inventory_data)
