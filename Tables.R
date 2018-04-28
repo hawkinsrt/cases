@@ -8,12 +8,12 @@ CalculatingDeliveryDates = function(){
   deliveries = SHIPMENTS_TABLE %>% mutate(dow = format(as.Date(calendardate),"%a"))
   
   
-  print(" - 2.2 - Calculate counts and standard deviations of DoWs")
-  deliveries2 = deliveries %>% group_by(storesku, dow) %>% summarise(n=n()) %>% mutate(sd=sd(2*n)) %>% ungroup()
+  print(" - 2.2 - Calculate counts and means of DoWs")
+  deliveries2 = deliveries %>% group_by(storesku, dow) %>% summarise(n=n()) %>% mutate(mean=mean(n)) %>% ungroup()
   
   
   print(" - 2.3 - Choose store:skus")
-  deliveries2 = deliveries2 %>% mutate(IsDeliver=(n>sd))
+  deliveries2 = deliveries2 %>% mutate(IsDeliver=(n>=mean))
   
   
   print(" - 2.4 - Calculating delivery date")
@@ -28,81 +28,84 @@ CalculatingDeliveryDates = function(){
 }
 
 
-CalculatingInventories = function(){
-  
-  startTime = Sys.time()
-  
-  
-  print("3 - Calculating Inventories")
-  
-  print(" - 3.1 - Joining SCAN_TABLE and SHIPMENTS_TABLE")
-  inventory_data = suppressWarnings(full_join(SHIPMENTS_TABLE, SCAN_TABLE, by = c("calendardate", "storekey", "sku", "datekey", "skukey", "storesku")))
-  inventory_data = suppressWarnings(semi_join(inventory_data, delivery_table, by = "storesku"))
-
-
-  print(" - 3.2 - Creating Primative Store:Sku Hash")
-  inventory_data = as.data.table(mutate(inventory_data, storesku = paste(storekey, sku, sep="-")))
-
-  
-  print(" - 3.3 - Replacing NAs with zeros")
-  inventory_data$shipunits[is.na(inventory_data$shipunits)]=0
-  inventory_data$salesunits[is.na(inventory_data$salesunits)]=0
-  
-  
-  # Sort the columns by Store:sku first, then by date
-  print(" - 3.4 - Sort Columns")
-  inventory_data = arrange(inventory_data, storesku, calendardate)
-  
-  
-  # Add a column that calculates the change in inventory [ +/-units from shipments and -units from sales ]
-  print(" - 3.5 - Calculating inventories")
-  inventory_data = mutate(inventory_data, inv_change = shipunits - salesunits)
-  
-  
-  # For each Store:sku, calculate the cumulative total of the inventory  [ cumsum(inv_change) ]
-  print(" - 3.6 - Calculating inventories 2")
-  inventory_data = inventory_data %>% group_by(storesku) %>% mutate(inv_current = ave(inv_change, storesku, FUN=cumsum)) %>% ungroup()
-  
-  
-  #print("# - Calculating shrink")
-  #if (min(inventory_data$inv_current) < 0) inventory_data = mutate(inventory_data, shrinkamt = cumsum(inv_change * SHRINK_DECAY)) else inventory_data = mutate(inventory_data, shrinkamt = cumsum(inv_change * 0)) #Working on this one
-  #if (min(inventory_data$inv_current) < 0) inventory_data = mutate(inventory_data, shrinkamt = 0) else inventory_data = mutate(inventory_data, shrinkamt = 0) 
-  
-  
-  # If the inventory goes into the negative, add that negative number to the entire set of inventories for that store:sku to bring it out of negative - This is necessary for a poisson regression
-  print(" - 3.7 - Reverse calculating starting inventories")
-  inventory_data = inventory_data %>% group_by(storesku) %>% mutate(final_inventory = cumsum(inv_change)-min(inv_current)) %>% ungroup()
-  
-  
-  print(paste("3.X - Inventory Calculations Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
-  
-  # Return the Output  
-  inventory_data
-}
-
-
 CalculatingCapacities = function(){
   
   startTime = Sys.time()
   
   
-  print("4 - Calculating Store Inventory Capacity")
+  print("3 - Calculating Store Inventory Capacity")
   
   # Get only rows that have a positive shipment count
-  print(" - 4.1 - Creating a Table of Only Deliveries")
+  print(" - 3.1 - Creating a Table of Only Deliveries")
   dist_table = filter(inventory_table, shipunits>0)
   
   
   # Get the average of all of the shipment dates  [ We are assuming the driver was able to bring the store up to or close to capacity each run.  So we will take the mean of the inventories after the delivery to determine the capacity ]
-  print(" - 4.2 - Calculating Approximate Capacity of Each Store:Sku")
+  print(" - 3.2 - Calculating Approximate Capacity of Each Store:Sku")
   capacities = dist_table %>% group_by(storesku) %>% summarise(mean = mean(final_inventory))
   
   
-  print(paste("4.X - Inventories Capacity Calculations Complete", round(Sys.time()-startTime, digits = 2), "seconds."))
+  print(paste("3.X - Inventories Capacity Calculations Complete", round(Sys.time()-startTime, digits = 2), "seconds."))
   
   
   # Return the Output
   capacities
+}
+
+
+CalculatingInventories = function(){
+  
+  startTime = Sys.time()
+  
+  
+  print("4 - Calculating Inventories")
+  
+  # TODO - Make the SQL server do this join
+  print(" - 4.1 - Joining SCAN_TABLE and SHIPMENTS_TABLE")
+  inventory_data = suppressWarnings(full_join(SHIPMENTS_TABLE, SCAN_TABLE,
+                                    by = c("calendardate", "storekey", "sku", "datekey", "storesku", "skukey")))
+                                    # The last three joins above are not functionally necessary, but prevent duplicate columns from being created by R
+min(inventory_data$calendardate)
+
+  print(" - 4.2 - Creating Primative Store:Sku Hash")
+  inventory_data = as.data.table(mutate(inventory_data, storesku = paste(storekey, sku, sep="-")))
+
+  
+  print(" - 4.3 - Replacing NAs with zeros")
+  inventory_data$shipunits[is.na(inventory_data$shipunits)]=0
+  inventory_data$salesunits[is.na(inventory_data$salesunits)]=0
+  
+  
+  # Sort the columns by Store:sku first, then by date
+  print(" - 4.4 - Sort Columns")
+  inventory_data = arrange(inventory_data, storesku, calendardate)
+  
+  
+  # Add a column that calculates the change in inventory [ +/-units from shipments and -units from sales ]
+  print(" - 4.5 - Calculating inventories")
+  inventory_data = mutate(inventory_data, inv_change = shipunits - salesunits)
+  
+  
+  # For each Store:sku, calculate the cumulative total of the inventory  [ cumsum(inv_change) ]
+  print(" - 4.6 - Calculating inventories 2")
+  inventory_data = inventory_data %>% group_by(storesku) %>% mutate(inv_current = ave(inv_change, storesku, FUN=cumsum)) %>% ungroup()
+
+  
+  # Might need to be done at a different point in the process?
+  #print("# - Calculating shrink")   
+  #if (min(inventory_data$inv_current) < 0) inventory_data = mutate(inventory_data, shrinkamt = cumsum(inv_change * SHRINK_DECAY)) else inventory_data = mutate(inventory_data, shrinkamt = cumsum(inv_change * 0)) #Working on this one
+  #if (min(inventory_data$inv_current) < 0) inventory_data = mutate(inventory_data, shrinkamt = 0) else inventory_data = mutate(inventory_data, shrinkamt = 0) 
+
+    
+  # If the inventory goes into the negative, add that negative number to the entire set of inventories for that store:sku to bring it out of negative - This is necessary for a poisson regression
+  print(" - 4.7 - Reverse calculating starting inventories")
+  inventory_data = inventory_data %>% group_by(storesku) %>% mutate(final_inventory = cumsum(inv_change)-min(inv_current)) %>% ungroup()
+  
+  
+  print(paste("4.X - Inventory Calculations Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
+  
+  # Return the Output  
+  inventory_data
 }
 
 

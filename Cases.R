@@ -10,12 +10,14 @@
 # Mary Beth Nolan
 # ----------------------------------------------
 
+
 # ----------------------------------------------
 # Reset Environment
 # ----------------------------------------------
 rm(list=ls())
 programStartTime = Sys.time()
 print(paste("Program Start Time", programStartTime))
+
 
 # ----------------------------------------------
 # Package Installers
@@ -28,6 +30,7 @@ print(paste("Program Start Time", programStartTime))
 #install.packages("tidyr")
 #install.packages("xts")
 #install.packages("zoo")
+
 
 # ----------------------------------------------
 # File Locations/Configuration
@@ -43,13 +46,43 @@ suppressWarnings(suppressMessages(library(xts)))
 suppressWarnings(suppressMessages(library(zoo)))
 suppressWarnings(suppressMessages(library(dplyr)))        # dplyr MUST be the last library listed!!!!
 
-#set working directory to Poject Directory first
 
-source("cfg.r")
 source("Tables.r")
 source("PostgreSQL.r")
 
 print("Loading Libraries Complete")
+
+
+# ----------------------------------------------
+# Program Settings
+# ----------------------------------------------
+print("Loading Program Settings")
+
+
+# The processing date of the run
+PROCESSING_DATE = as.Date("2018-01-23")
+# PROCESSING_DATE = today()
+print (paste("The processing date of this run is ", format(PROCESSING_DATE, "%A, %B %d, %Y"), sep=""))
+
+
+# The number of days out to forecast
+FORECAST_OFFSET = 2
+print (paste("The forecasting date of this run is ", format(PROCESSING_DATE + FORECAST_OFFSET, "%A, %B %d, %Y"), sep=""))
+
+
+# The shrink decay modifier
+# Shrink decay does not work yet.
+# Furthermore, a different system should be used where there is a differnt modifier for each sku
+# SHRINK_DECAY = 0.10
+
+
+# Set the working directory
+wd = getwd()
+if (!is.null(wd)) setwd(wd)
+
+
+print("Loading Program Settings Complete")
+
 
 # ----------------------------------------------
 # Begin Working with the Data
@@ -69,9 +102,9 @@ LoadTablesSQL()
 
 delivery_table = CalculatingDeliveryDates()
 
-inventory_table = CalculatingInventories()
-
 capacities_table = CalculatingCapacities()
+
+inventory_table = CalculatingInventories()
 
 preforecast_table = ForecastInventoriesA()
 
@@ -98,18 +131,11 @@ stop("[NOT AN ERROR] - End of proven code")
 # Anything below here is not finished work and is just for testing
 # ----------------------------------------------
 
+INVENTORY_TEST = filter(inventory_data, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
+INVENTORY_TEST [,10:20]
+
+
 SCAN_TEST = filter(SCAN_TABLE, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
 SHIPMENT_TEST = filter(SHIPMENTS_TABLE, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
-LEFT_TEST = suppressWarnings(left_join(SHIPMENT_TEST, SCAN_TEST, by = c("calendardate", "storekey", "sku", "datekey", "skukey", "storesku")))
-RIGHT_TEST = suppressWarnings(right_join(SHIPMENT_TEST, SCAN_TEST, by = c("calendardate", "storekey", "sku", "datekey", "skukey", "storesku")))
-ANTI_TEST = suppressWarnings(anti_join(SHIPMENT_TEST, SCAN_TEST, by = c("calendardate", "storekey", "sku", "datekey", "skukey", "storesku")))
-
-SCAN_TEST = arrange(SCAN_TEST, storesku, calendardate)
-SHIPMENT_TEST = arrange(SHIPMENT_TEST, storesku, calendardate)
-LEFT_TEST = arrange(LEFT_TEST, storesku, calendardate)
-RIGHT_TEST = arrange(RIGHT_TEST, storesku, calendardate)
-ANTI_TEST = arrange(ANTI_TEST, storesku, calendardate)
-
-
-head(SCAN_TEST)
-head(SHIPMENT_TEST)
+SCAN_TEST [,10:20]
+SHIPMENT_TEST [,10:20]
