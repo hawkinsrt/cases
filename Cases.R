@@ -28,6 +28,8 @@ print(paste("*** PROGRAM START TIME - ", programStartTime, " ***", sep = ""))
 #install.packages("data.table")
 #install.packages("dplyr")
 #install.packages("fpp2")
+#install.packages("gWidgets")
+#install.packages("gWidgetstcltk")
 #install.packages("tidyr")
 #install.packages("xts")
 #install.packages("zoo")
@@ -42,6 +44,7 @@ print("Loading Libraries")
 suppressWarnings(suppressMessages(library(bindrcpp)))
 suppressWarnings(suppressMessages(library(data.table)))
 suppressWarnings(suppressMessages(library(fpp2)))
+suppressWarnings(suppressMessages(library(tibble)))
 suppressWarnings(suppressMessages(library(tidyr)))
 suppressWarnings(suppressMessages(library(xts)))
 suppressWarnings(suppressMessages(library(zoo)))
@@ -58,6 +61,12 @@ print("Loading Libraries Complete")
 # Program Settings
 # ----------------------------------------------
 print("Loading Program Settings")
+
+# DATABASE DETAILS
+DB_NAME = "test"
+DB_HOST = "159.89.176.120"
+#username = student1
+#pw = VCUDAPT
 
 # PROCESSING DATE OF THE RUN
 PROCESSING_DATE = as.Date("2018-01-23")
@@ -130,15 +139,3 @@ forecast_table = ForecastInventoriesB()
 programEndTime = Sys.time()
 print(paste("Program Completed", round(programEndTime - programStartTime, digits = 2), "hours"))
 print(paste("*** PROGRAM END TIME - ", programEndTime, " ***", sep = ""))
-
-stop("[NOT AN ERROR] - End of proven code")
-
-
-
-# ----------------------------------------------
-# STOP HERE
-# Anything below here is not finished work and is just for testing
-# ----------------------------------------------
-
-INVENTORY_TEST = filter(inventory_data, storekey=="10871" | storekey=="11490" | storekey=="10858", sku=="111000407" | sku=="111000120" | sku=="110025966")
-INVENTORY_TEST [,10:20]

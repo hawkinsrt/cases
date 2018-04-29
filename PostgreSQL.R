@@ -1,5 +1,9 @@
 suppressWarnings(suppressMessages(library(lubridate)))
 suppressWarnings(suppressMessages(library(RPostgreSQL)))
+suppressWarnings(suppressMessages(library(gWidgets)))
+suppressWarnings(suppressMessages(library(gWidgetstcltk)))
+
+options(guiToolkit="tcltk") 
 
 
 LoadTablesSQL = function () {
@@ -14,8 +18,15 @@ LoadTablesSQL = function () {
   
   # Store Database connection info
   print(" - 1.2 - Connecting to database")
-  con = dbConnect(drv, dbname = "test", host = "159.89.176.120", user = "student1", password = "VCUDAPT")
+  
+  UserName = ginput("Enter your username:", title = "dsd Partners Database Credentials")
+  if (UserName == "" | is.na(UserName)) stop("Username not entered")
+  
+  PW = ginput("Enter your passsword:", title = "dsd Partners Database Credentials")
+  if (PW == "" | is.na(PW)) stop("Password not entered")
 
+  con = dbConnect(drv, dbname = DB_NAME, host = DB_HOST, user = UserName, password = PW)
+  
   
   print(" - 1.3 - Loading dates")
   DATE_TABLE = suppressWarnings(dbGetQuery(con,"SELECT calendardate FROM public.dimdate"))
@@ -26,7 +37,7 @@ LoadTablesSQL = function () {
   STORE_TABLE = suppressWarnings(dbGetQuery(con, "SELECT storekey FROM dimstore WHERE closedate IS NOT NULL AND (DATE(NOW()) - DATE(opendate)) >= 28"))
   NEW_STORE_TABLE = suppressWarnings(dbGetQuery(con, "SELECT storekey FROM dimstore WHERE closedate IS NOT NULL AND (DATE(NOW()) - DATE(opendate)) < 28"))
   assign("STORE_TABLE", STORE_TABLE, envir = globalenv())          # Send the table to the global environment
-  assign("NEW_STORE_TABLE", STORE_TABLE, envir = globalenv())          # Send the table to the global environment
+  assign("NEW_STORE_TABLE", STORE_TABLE, envir = globalenv())      # Send the table to the global environment
   
 
   print(" - 1.5 - Loading shipments")
@@ -51,10 +62,7 @@ LoadTablesSQL = function () {
   assign("SCAN_TABLE", SCAN_TABLE, envir = globalenv())            # Send the table to the global environment
 
   
-  print(" - 1.7 - Loading store:skus")
-  STORE_SKU = unique(select(SHIPMENTS_TABLE, storesku, storekey, sku))
-  assign("STORE_SKU", STORE_SKU, envir = globalenv())        # Send the table to the global environment
-
+  dbDisconnect(con)
   
   print(paste("1.X - Loading Tables Complete", round(Sys.time()-startTime,digits = 2), "minutes"))
 }
