@@ -46,8 +46,9 @@ LoadTablesSQL = function () {
                                JOIN public.dimstore ON public.factalertshipments.storekey = public.dimstore.storekey 
                                JOIN public.dimsku ON public.factalertshipments.skukey = public.dimsku.skukey
                                WHERE closedate IS NULL"))
-  SHIPMENTS_TABLE = SHIPMENTS_TABLE %>% mutate(calendardate = ymd(datekey))
   SHIPMENTS_TABLE = SHIPMENTS_TABLE %>% mutate(storesku = paste(storekey, sku, sep="-"))
+  SHIPMENTS_TABLE = SHIPMENTS_TABLE %>% mutate(calendardate = ymd(datekey))
+  SHIPMENTS_TABLE = SHIPMENTS_TABLE %>% select(storesku, calendardate, shipunits)
   assign("SHIPMENTS_TABLE", SHIPMENTS_TABLE, envir = globalenv())  # Send the table to the global environment
 
   
@@ -57,11 +58,11 @@ LoadTablesSQL = function () {
                           JOIN public.dimstore ON public.factalertscans.storekey = public.dimstore.storekey
                           JOIN public.dimsku ON public.factalertscans.skukey = public.dimsku.skukey
                           WHERE closedate IS NULL"))
-  SCAN_TABLE = SCAN_TABLE %>% mutate(calendardate = ymd(datekey))
   SCAN_TABLE = SCAN_TABLE %>% mutate(storesku = paste(storekey, sku, sep="-"))
+  SCAN_TABLE = SCAN_TABLE %>% mutate(calendardate = ymd(datekey))
+  SCAN_TABLE = SCAN_TABLE %>% select(storesku, calendardate, salesunits)
   assign("SCAN_TABLE", SCAN_TABLE, envir = globalenv())            # Send the table to the global environment
 
-  
   dbDisconnect(con)
   
   print(paste("1.X - Loading Tables Complete", round(Sys.time()-startTime,digits = 2), "minutes"))

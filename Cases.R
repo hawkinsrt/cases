@@ -62,11 +62,11 @@ print("Loading Libraries Complete")
 # ----------------------------------------------
 print("Loading Program Settings")
 
+
 # DATABASE DETAILS
 DB_NAME = "test"
 DB_HOST = "159.89.176.120"
-#username = student1
-#pw = VCUDAPT
+
 
 # PROCESSING DATE OF THE RUN
 PROCESSING_DATE = as.Date("2018-01-23")
@@ -119,22 +119,22 @@ LoadTablesSQL()
 
 delivery_table = CalculatingDeliveryDates()
 
+forecasted_sales_table = ForecastSalesA()
+
 inventory_table = CalculatingInventories()
 
 capacities_table = CalculatingCapacities()
-
-preforecast_table = ForecastInventoriesA()
-
-forecast_table = ForecastInventoriesB()
-
-#output_table = CalculateActualDeliveries()
 
 # ----------------------------------------------
 # OUTPUT
 # ----------------------------------------------
 
-# TODO - Create Outputs
+CalculateActualDeliveries()
 
+
+# ----------------------------------------------
+# End Program
+# ----------------------------------------------
 
 programEndTime = Sys.time()
 print(paste("Program Completed", round(programEndTime - programStartTime, digits = 2), "hours"))
